@@ -1,37 +1,41 @@
-name: Claude PR Agent
+name: Claude Code # ワークフロー名。元の "Claude PR Agent" のままでもOKです。
 
 on:
-  issue_comment:
-    types: [created]
-  pull_request_review_comment:
-    types: [created]
-  issues:
-    types: [opened, assigned]
+    issue_comment:
+        types: [created]
+    pull_request_review_comment:
+        types: [created]
+    issues:
+        types: [opened, assigned]
+    pull_request_review:
+        types: [submitted]
 
 jobs:
-  claude-pr:
-    if: |
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'issues' && contains(github.event.issue.body, '@claude'))
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+    claude: # ジョブ名。元の "claude-pr" のままでもOKです。
+        if: |
+            (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+            (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+            (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+            (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
 
-      - name: Run Claude PR Agent
-        uses: ./
-        with:
-          timeout_minutes: "60"
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          use_oauth: "true"
-          claude_access_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
-          claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
-          claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
-          allowed_tools: "Bash(bun run:*),Bash(bun install),Bash(bun test:*)"
-          custom_instructions: "You have also been granted tools for editing files and running bun commands (install, run, test) for testing your changes."
+        runs-on: ubuntu-latest
+
+        permissions:
+            contents: write
+            pull-requests: write
+            issues: write
+            id-token: write
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              # fetch-depth: 1 は元記事のコード例には無かったので、それに合わせました
+
+            - name: Run Claude Code
+              # id: claude も元記事のコード例には無かったので、それに合わせました
+              uses: CMD8902/claude-code-action@main # ★★★ あなたのユーザー名/claude-code-action@main に変更 ★★★
+              with:
+                  use_oauth: 'true'
+                  claude_access_token: ${{ secrets.CLAUDE_ACCESS_TOKEN }}
+                  claude_refresh_token: ${{ secrets.CLAUDE_REFRESH_TOKEN }}
+                  claude_expires_at: ${{ secrets.CLAUDE_EXPIRES_AT }}
